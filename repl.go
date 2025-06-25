@@ -4,12 +4,19 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/Maxeminator/pokedexcli/internal/pokeapi"
 )
+
+type config struct {
+	Next     *string
+	Previous *string
+}
 
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(*config) error
 }
 
 var commands map[string]cliCommand
@@ -26,6 +33,16 @@ func init() {
 			description: "Displays a help message",
 			callback:    commandHelp,
 		},
+		"map": {
+			name:        "map",
+			description: "View list of areas",
+			callback:    commandMap,
+		},
+		"mapb": {
+			name:        "mapb",
+			description: "View previous list of areas",
+			callback:    commandMapb,
+		},
 	}
 }
 
@@ -35,18 +52,78 @@ func cleanInput(text string) []string {
 	return words
 }
 
-func commandExit() error {
+func commandExit(*config) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp() error {
+func commandHelp(*config) error {
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage: ")
 	fmt.Println()
 	for _, cmd := range commands {
-		fmt.Println(cmd.name + ": " + cmd.description)
+		fmt.Printf("%s: %s\n", cmd.name, cmd.description)
+	}
+	return nil
+}
+
+func commandMap(cfg *config) error {
+	url := "https://pokeapi.co/api/v2/location-area"
+	if cfg.Next != nil {
+		url = *cfg.Next
+	}
+	locations, err := pokeapi.GetLocationAreas(url)
+	if err != nil {
+		return fmt.Errorf("failed to get location areas: %w", err)
+	}
+	if locations.Count == 0 {
+		fmt.Println("No location areas found.")
+		return nil
+	}
+	fmt.Println("Location Areas:")
+	for _, area := range locations.Results {
+		fmt.Println(area.Name)
+	}
+	cfg.Next = locations.Next
+	cfg.Previous = locations.Previous
+	if cfg.Next != nil {
+		fmt.Printf("Next page: %s\n", *locations.Next)
+	}
+	if locations.Previous != nil {
+		fmt.Printf("Previous page: %s\n", *locations.Previous)
+	}
+	return nil
+}
+
+func commandMapb(cfg *config) error {
+	if cfg.Previous == nil {
+		fmt.Println("You're on the first page.")
+		return nil
+	}
+	url := "https://pokeapi.co/api/v2/location-area"
+
+	url = *cfg.Previous
+
+	locations, err := pokeapi.GetLocationAreas(url)
+	if err != nil {
+		return fmt.Errorf("failed to get location areas: %w", err)
+	}
+	if locations.Count == 0 {
+		fmt.Println("No location areas found.")
+		return nil
+	}
+	fmt.Println("Location Areas:")
+	for _, area := range locations.Results {
+		fmt.Println(area.Name)
+	}
+	cfg.Next = locations.Next
+	cfg.Previous = locations.Previous
+	if cfg.Next != nil {
+		fmt.Printf("Next page: %s\n", *locations.Next)
+	}
+	if locations.Previous != nil {
+		fmt.Printf("Previous page: %s\n", *locations.Previous)
 	}
 	return nil
 }
