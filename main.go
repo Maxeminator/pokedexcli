@@ -4,10 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"time"
+
+	"github.com/Maxeminator/pokedexcli/internal/pokecache"
 )
 
 func main() {
 	cfg := config{}
+	cfg.Cache = pokecache.NewCache(5 * time.Second)
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Pokedex > ")

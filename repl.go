@@ -6,11 +6,13 @@ import (
 	"strings"
 
 	"github.com/Maxeminator/pokedexcli/internal/pokeapi"
+	"github.com/Maxeminator/pokedexcli/internal/pokecache"
 )
 
 type config struct {
 	Next     *string
 	Previous *string
+	Cache    *pokecache.Cache
 }
 
 type cliCommand struct {
@@ -73,7 +75,7 @@ func commandMap(cfg *config) error {
 	if cfg.Next != nil {
 		url = *cfg.Next
 	}
-	locations, err := pokeapi.GetLocationAreas(url)
+	locations, err := pokeapi.GetLocationAreas(url, cfg.Cache)
 	if err != nil {
 		return fmt.Errorf("failed to get location areas: %w", err)
 	}
@@ -105,7 +107,7 @@ func commandMapb(cfg *config) error {
 
 	url = *cfg.Previous
 
-	locations, err := pokeapi.GetLocationAreas(url)
+	locations, err := pokeapi.GetLocationAreas(url, cfg.Cache)
 	if err != nil {
 		return fmt.Errorf("failed to get location areas: %w", err)
 	}
