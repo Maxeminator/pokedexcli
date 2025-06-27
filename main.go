@@ -22,7 +22,7 @@ func main() {
 		line := scanner.Text()
 		words := cleanInput(line)
 		if cmd, ok := commands[words[0]]; ok {
-			err := cmd.callback(&cfg)
+			err := cmd.callback(&cfg, words[1:])
 			if err != nil {
 				fmt.Println("Error:", err)
 			}

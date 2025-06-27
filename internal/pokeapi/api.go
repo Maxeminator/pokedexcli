@@ -21,6 +21,57 @@ type NamedAPIResource struct {
 	URL  string `json:"url"`
 }
 
+type LocationArea struct {
+	PokemonEncounters []struct {
+		Pokemon struct {
+			Name string `json:"name"`
+		} `json:"pokemon"`
+	} `json:"pokemon_encounters"`
+}
+
+func GetLocationAreaDetails(baseURL string, name string, cache *pokecache.Cache) (LocationArea, error) {
+	var pokemons LocationArea
+	fullURL := baseURL + name
+
+	val, ok := cache.Get(fullURL)
+	if ok {
+		err := json.Unmarshal(val, &pokemons)
+		if err != nil {
+			return pokemons, err
+		}
+		return pokemons, nil
+	}
+
+	if baseURL == "" || name == "" {
+		return pokemons, fmt.Errorf("invalid url or name")
+	}
+
+	resp, err := http.Get(fullURL)
+	if err != nil {
+		return pokemons, err
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return pokemons, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode > 299 {
+		return pokemons, fmt.Errorf("response failed with status code: %d", resp.StatusCode)
+	}
+
+	cache.Add(fullURL, body)
+
+	err = json.Unmarshal(body, &pokemons)
+	if err != nil {
+		return pokemons, err
+	}
+
+	return pokemons, nil
+}
+
 func GetLocationAreas(url string, cache *pokecache.Cache) (LocationAreaResponse, error) {
 	var locations LocationAreaResponse
 
@@ -51,7 +102,7 @@ func GetLocationAreas(url string, cache *pokecache.Cache) (LocationAreaResponse,
 	defer resp.Body.Close()
 
 	if resp.StatusCode > 299 {
-		return locations, fmt.Errorf("response failde with status code: %d ", resp.StatusCode)
+		return locations, fmt.Errorf("response failed with status code: %d ", resp.StatusCode)
 	}
 
 	cache.Add(url, body)
